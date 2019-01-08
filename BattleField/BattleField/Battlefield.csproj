@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <UserSecretsId>aspnet-BattleField-DA65946B-BD41-4F39-AC46-0B6F0F63ECE2</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.AspNetCore.Razor.Design" Version="2.1.2" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="2.1.6" PrivateAssets="All" />
+    <PackageReference Include="Xer.Cqrs" Version="1.0.0" />
+    <PackageReference Include="Xer.Cqrs.Extensions.Microsoft.DependencyInjection" Version="2.0.1" />
+    <PackageReference Include="Xer.Cqrs.QueryStack" Version="1.0.0" />
+  </ItemGroup>
+
+</Project>
