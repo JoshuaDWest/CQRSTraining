@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Models.Constants;
+using Models.Enums;
 using ReadStack.ReadModel;
 
 namespace ReadStack.Repositories
@@ -39,9 +41,83 @@ namespace ReadStack.Repositories
 
             var existingMatch = _matches.SingleOrDefault(m => m.Id == match.Id);
             if(existingMatch == null) throw new ArgumentException("The given match did not exist");
-
-            existingMatch.Active = match.Active;
+            existingMatch.Update(match);
+            
             return Task.CompletedTask;
+        }
+
+        public Task AddUnit(Guid match, UnitType type, string player,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var existingMatch = _matches.SingleOrDefault(m => m.Id == match);
+            ModifyCount(existingMatch, type, player, 1);
+
+            return Task.CompletedTask;
+        }
+
+        public Task RemoveUnit(Guid match, UnitType type, string player,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var existingMatch = _matches.SingleOrDefault(m => m.Id == match);
+            ModifyCount(existingMatch, type, player, -1);
+            return Task.CompletedTask;
+        }
+
+        private void ModifyCount(MatchReadModel match, UnitType type, string player, int change)
+        {
+            switch (type)
+            {
+                case UnitType.TankHeavy:
+                    if (player == PlayerInfo.PLAYER_ONE)
+                    {
+                        match.Player1.HeavyTankCount.Count += change;
+                    }
+                    else if (player == PlayerInfo.PLAYER_TWO)
+                    {
+                        match.Player2.HeavyTankCount.Count += change;
+                    }
+                    break;
+                case UnitType.TankLight:
+                    if (player == PlayerInfo.PLAYER_ONE)
+                    {
+                        match.Player1.LightTankCount.Count += change;
+                    }
+                    else if (player == PlayerInfo.PLAYER_TWO)
+                    {
+                        match.Player2.LightTankCount.Count += change;
+                    }
+                    break;
+                case UnitType.PlaneBomber:
+                    if (player == PlayerInfo.PLAYER_ONE)
+                    {
+                        match.Player1.BomberCount.Count += change;
+                    }
+                    else if (player == PlayerInfo.PLAYER_TWO)
+                    {
+                        match.Player2.BomberCount.Count += change;
+                    }
+                    break;
+                case UnitType.PlaneFighter:
+                    if (player == PlayerInfo.PLAYER_ONE)
+                    {
+                        match.Player1.FighterPlaneCount.Count += change;
+                    }
+                    else if (player == PlayerInfo.PLAYER_TWO)
+                    {
+                        match.Player2.FighterPlaneCount.Count += change;
+                    }
+                    break;
+                case UnitType.Infantry:
+                    if (player == PlayerInfo.PLAYER_ONE)
+                    {
+                        match.Player1.InfantryCount.Count += change;
+                    }
+                    else if (player == PlayerInfo.PLAYER_TWO)
+                    {
+                        match.Player2.InfantryCount.Count += change;
+                    }
+                    break;
+            }
         }
     }
 }

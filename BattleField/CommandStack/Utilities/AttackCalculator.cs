@@ -63,30 +63,27 @@ namespace CommandStack.Utilities
         private const int Soldier_FighterPlane_Dmg = 0;
         private const int Soldier_BomberPlane_Dmg = 0;
 
-
-
-        private static Random _random = new Random((int)DateTime.Now.Ticks);
-        public static (bool success, int dmg, Exception exc) Attack(UnitType attacker, UnitType attacked)
+        public static (bool success, int dmg, Exception exc) Attack(IRandomizer rand, UnitType attacker, UnitType attacked)
         {
             switch (attacker)
             {
                 case UnitType.TankHeavy:
                 case UnitType.TankLight:
-                    return TankAttack(attacker, attacked);
+                    return TankAttack(rand, attacker, attacked);
                 case UnitType.PlaneBomber:
                 case UnitType.PlaneFighter:
-                    return PlaneAttack(attacker, attacked);
+                    return PlaneAttack(rand, attacker, attacked);
                 case UnitType.Infantry:
-                    return SoldierAttack(attacked);
+                    return SoldierAttack(rand, attacked);
                 default:
                     return (false, 0, new CannotCalculateAttackException("Unknown unit types cannot attack"));
             }
             return (false, 0, new Exception("How did it get here!"));
         }
 
-        private static (bool success, int dmg, Exception exc) TankAttack(UnitType attacker, UnitType attacked)
+        private static (bool success, int dmg, Exception exc) TankAttack(IRandomizer rand, UnitType attacker, UnitType attacked)
         {
-            var roll = _random.Next(100) + 1;
+            var roll = rand.Generate(100) + 1;
             int chance = 0;
             int dmg = 0;
             switch (attacker)
@@ -147,9 +144,9 @@ namespace CommandStack.Utilities
             return (false, 0, null);
         }
 
-        private static (bool success, int dmg, Exception exc) PlaneAttack(UnitType attacker, UnitType attacked)
+        private static (bool success, int dmg, Exception exc) PlaneAttack(IRandomizer rand, UnitType attacker, UnitType attacked)
         {
-            var roll = _random.Next(100) + 1;
+            var roll = rand.Generate(100) + 1;
             int chance = 0;
             int dmg = 0;
             switch (attacker)
@@ -210,9 +207,9 @@ namespace CommandStack.Utilities
             return (false, 0, null);
         }
 
-        private static (bool success, int dmg, Exception exc) SoldierAttack(UnitType attacked)
+        private static (bool success, int dmg, Exception exc) SoldierAttack(IRandomizer rand, UnitType attacked)
         {
-            var roll = _random.Next(100) + 1;
+            var roll = rand.Generate(100)+ 1;
             int chance = 0;
             int dmg = 0;
             switch (attacked)

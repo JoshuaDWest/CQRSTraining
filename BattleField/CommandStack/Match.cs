@@ -13,18 +13,25 @@ namespace CommandStack
 {
     public class Match : AggregateRoot
     {
+        private readonly IRandomizer _rand;
         public int CurrentTurn { get; private set; }
         public bool ActiveMatch { get; private set; }
         public string Winner { get; private set; }
 
-        public List<Move> ActiveTurnMoves { get; }
+        public List<MoveSubmittedEvent> ActiveTurnMoves { get; }
         public Dictionary<Guid, IUnit> Units { get; }
 
-        public Match(Guid aggregateRootId) : base(aggregateRootId)
+        public Match(Guid aggregateRootId) : this(aggregateRootId, new BattleRandomizer())
         {
+        }
+
+        internal Match(Guid aggregateRootId, IRandomizer rand) : base(aggregateRootId)
+        {
+            _rand = rand;
+
             RegisterDomainEventAppliers();
 
-            ActiveTurnMoves = new List<Move>();
+            ActiveTurnMoves = new List<MoveSubmittedEvent>();
             Units = new Dictionary<Guid, IUnit>();
         }
 
@@ -59,31 +66,47 @@ namespace CommandStack
 
                 foreach(var move in command.Attacks)
                 {
-                    ApplyDomainEvent(new MoveSubmittedEvent(Id, CurrentTurn, command.Player, move.Source, move.Target));
+                    MakeAllPlayerUnitsOfTypeAttackTargetType(command, move);
                 }
 
                 ApplyDomainEvent(new AllPlayerMovesSubmittedForTurnEvent(Id, command.Player, CurrentTurn));
             }
         }
 
+        private void MakeAllPlayerUnitsOfTypeAttackTargetType(SubmitMovesCommand command, Attack move)
+        {
+            var numberOfAttacksAllowed = Units.Count(m => m.Value.OwnedByPlayer == command.Player && m.Value.Type == move.Source);
+            var numberOfOpposingPlayerUnits = Units.Count(m => m.Value.OwnedByPlayer != command.Player && m.Value.Type == move.Target);
+
+            if(numberOfOpposingPlayerUnits > 0)
+                for (var i = 0; i < numberOfAttacksAllowed; i++)
+                    ApplyDomainEvent(new MoveSubmittedEvent(Id, CurrentTurn, command.Player, move.Source, move.Target));
+        }
+
         internal void Apply(ProcessTurnCommand command)
         {
             foreach(var move in ActiveTurnMoves)
             {
-                if (move.Deploy) //deployed
+                if (move.Deployment) //deployed
                 {
                     ApplyDomainEvent(new DeployedEvent(Id, Guid.NewGuid(), move.Player, move.Source));
                 }
                 else //attack
                 {
-                    var attackResults = AttackCalculator.Attack(move.Source, move.Target);
+                    //pick a random unit from the opposing players units in this category to hit
+                    var possiblyAttacked = Units.Where(m => m.Value.OwnedByPlayer != move.Player && m.Value.Type == move.Target).ToArray();
+                    if (!possiblyAttacked.Any()) continue; // they all died! :(
+
+                    var attacked = possiblyAttacked[_rand.Generate(possiblyAttacked.Length)].Key;
+                    var attackResults = AttackCalculator.Attack(_rand, move.Source, move.Target);
+
                     if (attackResults.success)
                     {
-                        ApplyDomainEvent(new DamagedEvent(Id, move.AttackedId, move.Target, attackResults.dmg));
+                        ApplyDomainEvent(new DamagedEvent(Id, attacked, move.Target, attackResults.dmg));
 
                         //check for destruction
-                        if(Units[move.AttackedId].Health <  attackResults.dmg)
-                            ApplyDomainEvent(new DestroyedEvent(Id, move.AttackedId, Units[move.AttackedId].OwnedByPlayer, Units[move.AttackedId].Type));
+                        if(Units[attacked].Health <=  attackResults.dmg)
+                            ApplyDomainEvent(new DestroyedEvent(Id, attacked, Units[attacked].OwnedByPlayer, Units[attacked].Type));
                     }
                     else if (attackResults.exc == null)
                     {
@@ -95,6 +118,8 @@ namespace CommandStack
                     }
                 }
             }
+
+            ApplyDomainEvent(new MatchTurnEndedEvent(Id, CurrentTurn));
         }
 
         internal void Apply(EndGameCommand command)
@@ -106,6 +131,7 @@ namespace CommandStack
         #region Event Handling
         public void RegisterDomainEventAppliers()
         {
+            RegisterDomainEventApplier<AllPlayerMovesSubmittedForTurnEvent>(OnAllPlayerMovesSubmittedForTurnEvent);
             RegisterDomainEventApplier<MatchStartedEvent>(OnMatchStartedEvent);
             RegisterDomainEventApplier<MoveSubmittedEvent>(OnMoveSubmittedEvent);
             RegisterDomainEventApplier<MatchTurnEndedEvent>(OnMatchTurnEndedEvent);
@@ -128,13 +154,17 @@ namespace CommandStack
 
         private void OnMoveSubmittedEvent(MoveSubmittedEvent devent)
         {
-            ActiveTurnMoves.Add(new Move{ Player = devent.Player, Source = devent.Source, Target = devent.Target});
+            ActiveTurnMoves.Add(devent);
         }
 
         private void OnMatchTurnEndedEvent(MatchTurnEndedEvent devent)
         {
             ActiveTurnMoves.Clear();
             CurrentTurn++;
+        }
+
+        private void OnAllPlayerMovesSubmittedForTurnEvent(AllPlayerMovesSubmittedForTurnEvent devent)
+        {
         }
 
         private void OnMatchEndedEvent(MatchEndedEvent devent)
@@ -193,21 +223,6 @@ namespace CommandStack
             ApplyDomainEvent(new DeployedEvent(Id, Guid.NewGuid(), player, UnitType.TankLight));
             ApplyDomainEvent(new DeployedEvent(Id, Guid.NewGuid(), player, UnitType.TankLight));
             ApplyDomainEvent(new DeployedEvent(Id, Guid.NewGuid(), player, UnitType.TankLight));
-        }
-
-        public class Move
-        {
-            /// <summary>
-            /// Whether or not this is a deployment move
-            /// </summary>
-            public bool Deploy { get; set; }
-            public string Player { get; set; }
-            public UnitType Source { get; set; }
-            public UnitType Target { get; set; }
-            /// <summary>
-            /// The id of the thing being attacked if this is an attack move
-            /// </summary>
-            public Guid AttackedId { get; set; }
         }
     }
 }

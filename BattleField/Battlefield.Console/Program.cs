@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using CommandStack.Commands;
 using Microsoft.Extensions.DependencyInjection;
+using Models.Enums;
 using ReadStack.Queries;
 using ReadStack.ReadModel;
 using Xer.Cqrs.CommandStack;
@@ -26,6 +27,51 @@ namespace Battlefield.Console
             
             System.Console.WriteLine("New game started...");
             var activeMatch = queryBus.DispatchAsync<QueryActiveMatch, MatchReadModel>(new QueryActiveMatch()).Result;
+            System.Console.WriteLine($"The active match is: {activeMatch.Id}");
+
+            var p1move = new SubmitMovesCommand()
+            {
+                Player = "player1",
+                Match = matchId,
+                Attacks = new List<Attack>()
+                {
+                    new Attack(){ Source = UnitType.PlaneBomber, Target = UnitType.TankHeavy },
+                    new Attack(){ Source = UnitType.PlaneFighter, Target = UnitType.PlaneFighter },
+                    new Attack(){ Source = UnitType.TankLight, Target = UnitType.Infantry },
+                    new Attack(){ Source = UnitType.TankHeavy, Target = UnitType.TankHeavy },
+                    new Attack(){ Source = UnitType.Infantry, Target = UnitType.TankHeavy }
+                },
+                Deployments = new List<Deploy>
+                {
+                    new Deploy(){ Type = UnitType.TankHeavy },
+                    new Deploy(){ Type = UnitType.PlaneBomber }
+                }
+            };
+
+            var p2move = new SubmitMovesCommand()
+            {
+                Player = "player2",
+                Match = matchId,
+                Attacks = new List<Attack>()
+                {
+                    new Attack(){ Source = UnitType.PlaneBomber, Target = UnitType.PlaneBomber },
+                    new Attack(){ Source = UnitType.PlaneFighter, Target = UnitType.PlaneBomber },
+                    new Attack(){ Source = UnitType.TankLight, Target = UnitType.TankLight },
+                    new Attack(){ Source = UnitType.TankHeavy, Target = UnitType.TankLight },
+                    new Attack(){ Source = UnitType.Infantry, Target = UnitType.TankHeavy }
+                },
+                Deployments = new List<Deploy>
+                {
+                    new Deploy(){ Type = UnitType.TankLight },
+                    new Deploy(){ Type = UnitType.Infantry },
+                    new Deploy(){ Type = UnitType.Infantry }
+                }
+            };
+
+            commandBus.SendAsync(p1move).Wait();
+            commandBus.SendAsync(p2move).Wait();
+
+            activeMatch = queryBus.DispatchAsync<QueryActiveMatch, MatchReadModel>(new QueryActiveMatch()).Result;
             System.Console.WriteLine($"The active match is: {activeMatch.Id}");
 
             System.Console.WriteLine("Game Finished. Press any key to exit..");

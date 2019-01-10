@@ -37,6 +37,8 @@ namespace ReadStack
         {
             register.RegisterEventHandler<MatchStartedEvent>(() => new MatchEventHandlers(serviceProvider.GetRequiredService<IMatchReadStackRepository>()));
             register.RegisterEventHandler<MatchEndedEvent>(() => new MatchEventHandlers(serviceProvider.GetRequiredService<IMatchReadStackRepository>()));
+            register.RegisterEventHandler<DeployedEvent>(() => new MatchEventHandlers(serviceProvider.GetRequiredService<IMatchReadStackRepository>()));
+            register.RegisterEventHandler<DestroyedEvent>(() => new MatchEventHandlers(serviceProvider.GetRequiredService<IMatchReadStackRepository>()));
         }
     }
 }

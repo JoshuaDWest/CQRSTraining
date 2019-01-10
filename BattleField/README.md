@@ -11,7 +11,14 @@ http://cqrs.nu/Faq
 Q:
 Does the order events arrive in matter? I don't think it should, all events have a timestamp of when they occurred. Sagas and the like should probably
 respect this when looking at events
+
 A: Order of events should not matter. Sagas should be capable regardless of order events arrive to give eventual consistency.
+
+Q: Where should random chance happen in the aggregate being this is a game?
+
+A: Anything that is based on chance should occur in the application of commands. By the 
+time events come through you want to know that applying an event will work the same every
+time it is applied given the events that come before it are the same as well.
 
 ------------------
 ## Game Rules
